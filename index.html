@@ -571,14 +571,16 @@ function onDelB(text){
 
 // ── Lokales Alias-Management ─────────────────────────────
 function showAlias(text){
-  document.getElementById('aliasHeard').textContent = '"' + text + '"';
+  // Hausnummer am Ende abschneiden – nur Straßenname als Alias
+  const streetOnly = text.replace(/\s+\d+\S*\s*$/, '').trim();
+  document.getElementById('aliasHeard').textContent = '"' + streetOnly + '" (aus: "' + text + '")';
   const sel = document.getElementById('aliasStreet');
   sel.innerHTML = '<option value="">-- Straße wählen --</option>';
   [...new Set(ROUTE.map(([s])=>s))].forEach(s=>{
     const o=document.createElement('option');
     o.value=s;o.textContent=s;sel.appendChild(o);
   });
-  sel._pendingText = text;
+  sel._pendingText = streetOnly;
   document.getElementById('aliasPanel').className='alias-panel show';
 }
 function hideAlias(){

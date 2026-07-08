@@ -466,6 +466,12 @@ function populateStreets(){
   });
 }
 
+// Manual toggle via addEventListener (CSP-sicher)
+document.addEventListener('DOMContentLoaded', function(){
+  const mt = document.getElementById('manualToggle');
+  if(mt) mt.addEventListener('click', toggleManual);
+});
+
 function toggleManual(){
   const panel=document.getElementById('manualSelects');
   const btn=document.getElementById('manualToggle');

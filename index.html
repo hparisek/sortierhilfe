@@ -222,15 +222,16 @@ svg { flex-shrink: 0; }
   </div>
 </div>
 
+<script>
+// Registry muss VOR den Gangfolge-Dateien definiert sein
+const GANGFOLGEN = [];
+let ALIASES = {};
+function registerGangfolge(g){ GANGFOLGEN.push(g); }
+</script>
 <script src="gangfolge-17.js"></script>
 <script src="gangfolge-05.js"></script>
 <script src="gangfolge-11.js"></script>
 <script>
-// Globale Gangfolgen-Registry - muss vor den gangfolge-XX.js Dateien stehen
-const GANGFOLGEN = [];
-let ALIASES = {};
-function registerGangfolge(g){ GANGFOLGEN.push(g); }
-
 const LS_KEY='psh_adam_v1';
 const DAYS=['Mo','Di','Mi','Do','Fr','Sa'];
 // Gangfolgen-Registry oben definiert

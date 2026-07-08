@@ -466,6 +466,29 @@ function populateStreets(){
   });
 }
 
+function toggleManual(){
+  const panel=document.getElementById('manualSelects');
+  const btn=document.getElementById('manualToggle');
+  const isOpen=panel.classList.contains('show');
+  if(isOpen){panel.classList.remove('show');btn.classList.remove('open');}
+  else{panel.classList.add('show');btn.classList.add('open');populateStreets();}
+}
+
+function populateStreets(){
+  const sel=document.getElementById('streetSelect');
+  const current=sel.value;
+  const streets=[];
+  const seen=new Set();
+  ROUTE.forEach(([s])=>{if(!seen.has(s)){seen.add(s);streets.push(s);}});
+  sel.innerHTML='<option value="">-- Straße --</option>';
+  streets.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s;opt.textContent=s;
+    if(s===current)opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+
 function onStreetChange(){
   const street=document.getElementById('streetSelect').value;
   const numSel=document.getElementById('numSelect');

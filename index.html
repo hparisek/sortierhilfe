@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Paket-Sortierhilfe v67</title>
+<title>Paket-Sortierhilfe Adam v67</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { background: #FFCC00 !important; font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -80,6 +80,14 @@ html, body { background: #FFCC00 !important; font-size: 15px; font-family: -appl
 .gang-item.highlight .gang-pkg-badge { display: inline-flex; }
 .gang-pkg-count { font-size: 10px; }
 .no-support { color: #D85A30; font-size: 13px; padding: 0.5rem 0; }
+.alias-panel { margin-top: 6px; background: #fff; border: 1.5px solid #185FA5; border-radius: 10px; padding: 10px 12px; display: none; }
+.alias-panel.show { display: block; }
+.alias-panel-title { font-size: 12px; color: #185FA5; font-weight: 600; margin-bottom: 6px; }
+.alias-heard { font-size: 12px; color: #D85A30; margin-bottom: 8px; }
+.alias-select { width: 100%; padding: 7px 10px; border-radius: 8px; border: 1.5px solid #cca800; background: #fff8cc; font-size: 13px; margin-bottom: 8px; }
+.alias-btns { display: flex; gap: 6px; }
+.alias-save { flex:1; padding: 8px; border-radius: 8px; background: #185FA5; border: none; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+.alias-cancel { padding: 8px 12px; border-radius: 8px; background: #f0f0f0; border: 1px solid #ccc; color: #555; font-size: 12px; cursor: pointer; }
 /* R/B Bestätigung */
 /* Manuelle Eingabe Buttons */
 .manual-action-btns { display: flex; gap: 6px; margin-top: 6px; }
@@ -119,7 +127,7 @@ svg { flex-shrink: 0; }
 
 <div id="app">
   <div class="header">
-    <h2><svg width="16" height="16"><use href="#ico-package"/></svg> Paket-Sortierhilfe <span style="font-weight:400;color:#666;font-size:12px;">v67</span></h2>
+    <h2><svg width="16" height="16"><use href="#ico-package"/></svg> Paket-Sortierhilfe Adam <span style="font-weight:400;color:#666;font-size:12px;">v67</span></h2>
     <p>Sprich eine Adresse oder Packstation ein.</p>
     <div class="slot-row" id="slotRow"></div>
   </div>
@@ -182,6 +190,17 @@ svg { flex-shrink: 0; }
         </div>
       </div>
       <div class="hint" id="hint">Taste druecken, dann sprechen</div>
+      <div class="alias-panel" id="aliasPanel">
+        <div class="alias-panel-title">Unbekannte Adresse – Alias speichern?</div>
+        <div class="alias-heard" id="aliasHeard"></div>
+        <select class="alias-select" id="aliasStreet">
+          <option value="">-- Straße wählen --</option>
+        </select>
+        <div class="alias-btns">
+          <button class="alias-save" onclick="saveAlias()">Speichern</button>
+          <button class="alias-cancel" onclick="hideAlias()">Abbrechen</button>
+        </div>
+      </div>
       <div class="result-card" id="resultCard">
         <div class="result-addr" id="resultAddr"></div>
         <div class="result-pos" id="resultPos"></div>
@@ -411,26 +430,20 @@ function askClear(){hidePicker();hideSlotConfirm();document.getElementById('conf
 function cancelClear(){document.getElementById('confirmBox').className='confirm-box';}
 function clearAll(){packages=[];doneSet=new Set();rSet=new Set();bSet=new Set();lsSave();resetUI();applyRBClasses();}
 function onAdd(text){
-  document.getElementById('hint').textContent=text;document.getElementById('resultDeleted').textContent='';
+  document.getElementById('hint').textContent=text;
+  document.getElementById('resultDeleted').textContent='';
+  hideAlias();
   const p=parseAddr(text);
-  if(!p){document.getElementById('resultCard').className='result-card show';document.getElementById('resultAddr').textContent=text;document.getElementById('resultPos').textContent='';document.getElementById('resultBetween').textContent='';document.getElementById('resultNotFound').textContent='Nicht erkannt.';return;}
+  if(!p){
+    document.getElementById('resultCard').className='result-card show';
+    document.getElementById('resultAddr').textContent=text;
+    document.getElementById('resultPos').textContent='';
+    document.getElementById('resultBetween').textContent='';
+    document.getElementById('resultNotFound').textContent='Nicht erkannt';
+    showAlias(text);
+    return;
+  }
   renderResult(p[0],p[1],insert(p[0],p[1]));
-}
-function onDel(text){
-  document.getElementById('hint').textContent=text;const n=parseNum(text);
-  document.getElementById('resultCard').className='result-card show';
-  ['resultAddr','resultPos','resultBetween','resultNotFound','resultDeleted'].forEach(id=>document.getElementById(id).textContent='');
-  if(n===null||n<1||n>packages.length){document.getElementById('resultNotFound').textContent='Position nicht erkannt.';return;}
-  const del=packages[n-1];packages.splice(n-1,1);
-  document.getElementById('resultDeleted').textContent='Pos. '+n+' geloescht: '+del[0]+' '+del[1];
-  if(!packages.length)setTimeout(resetUI,1500);else{renderList();updateHighlights();}
-}
-function toggleManual(){
-  const panel=document.getElementById('manualSelects');
-  const btn=document.getElementById('manualToggle');
-  const isOpen=panel.classList.contains('show');
-  if(isOpen){panel.classList.remove('show');btn.classList.remove('open');}
-  else{panel.classList.add('show');btn.classList.add('open');populateStreets();}
 }
 
 function populateStreets(){
@@ -556,6 +569,46 @@ function onDelB(text){
   }
 }
 
+// ── Lokales Alias-Management ─────────────────────────────
+function showAlias(text){
+  document.getElementById('aliasHeard').textContent = '"' + text + '"';
+  const sel = document.getElementById('aliasStreet');
+  sel.innerHTML = '<option value="">-- Straße wählen --</option>';
+  [...new Set(ROUTE.map(([s])=>s))].forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s;o.textContent=s;sel.appendChild(o);
+  });
+  sel._pendingText = text;
+  document.getElementById('aliasPanel').className='alias-panel show';
+}
+function hideAlias(){
+  document.getElementById('aliasPanel').className='alias-panel';
+}
+function saveAlias(){
+  const street = document.getElementById('aliasStreet').value;
+  const text = document.getElementById('aliasStreet')._pendingText;
+  if(!street||!text) return;
+  const key = text.toLowerCase().trim();
+  ALIASES[key] = street;
+  // Lokal speichern
+  const lsKey = 'psh_aliases_' + activeRouteIdx;
+  try{
+    const stored = JSON.parse(localStorage.getItem(lsKey)||'{}');
+    stored[key] = street;
+    localStorage.setItem(lsKey, JSON.stringify(stored));
+  }catch(e){}
+  document.getElementById('hint').textContent = 'Alias gespeichert: "'+text+'" → '+street;
+  hideAlias();
+}
+function loadStoredAliases(){
+  GANGFOLGEN.forEach((g,i)=>{
+    try{
+      const stored = JSON.parse(localStorage.getItem('psh_aliases_'+i)||'{}');
+      if(stored&&typeof stored==='object') Object.assign(g.aliases, stored);
+    }catch(e){}
+  });
+}
+
 function toggleListen(mode){
   // Stop all others first
   if(mode!=='add'&&lisAdd&&recAdd) recAdd.stop();
@@ -575,6 +628,7 @@ function toggleListen(mode){
 }
 window.addEventListener('load',()=>{
   lsLoad();
+  loadStoredAliases();
   ROUTE=GANGFOLGEN[activeRouteIdx].route;
   ALIASES=(GANGFOLGEN[activeRouteIdx]&&GANGFOLGEN[activeRouteIdx].aliases)||{};
   document.getElementById('gangfolgeLabel').textContent=GANGFOLGEN[activeRouteIdx].name;

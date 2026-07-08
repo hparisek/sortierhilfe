@@ -76,7 +76,7 @@ const GANGFOLGE_17_ALIASES = {
 };
 
 // Wird von der App registriert
-if(typeof registerGangfolge === 'function') {
+
   // Standard
   registerGangfolge({
     name: '60487-17 Standard',
@@ -94,4 +94,3 @@ if(typeof registerGangfolge === 'function') {
     route: adamRoute,
     aliases: GANGFOLGE_17_ALIASES
   });
-}

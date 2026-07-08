@@ -1125,10 +1125,9 @@ const GANGFOLGE_05_ALIASES = {
   "zillestrasse":"Zillestr.","zille":"Zillestr."
 };
 
-if(typeof registerGangfolge === 'function') {
+
   registerGangfolge({
     name: '60488-05',
     route: GANGFOLGE_05_ROUTE,
     aliases: GANGFOLGE_05_ALIASES
   });
-}

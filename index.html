@@ -226,15 +226,14 @@ svg { flex-shrink: 0; }
 <script src="gangfolge-05.js"></script>
 <script src="gangfolge-11.js"></script>
 <script>
-const LS_KEY='psh_adam_v1';
-const DAYS=['Mo','Di','Mi','Do','Fr','Sa'];
-// Gangfolgen werden dynamisch durch externe .js Dateien registriert
+// Globale Gangfolgen-Registry - muss vor den gangfolge-XX.js Dateien stehen
 const GANGFOLGEN = [];
 let ALIASES = {};
+function registerGangfolge(g){ GANGFOLGEN.push(g); }
 
-function registerGangfolge(g){
-  GANGFOLGEN.push(g);
-}
+const LS_KEY='psh_adam_v1';
+const DAYS=['Mo','Di','Mi','Do','Fr','Sa'];
+// Gangfolgen-Registry oben definiert
 let activeRouteIdx=0;
 let ROUTE=GANGFOLGEN[0].route;
 // Aliases werden aus gangfolge-XX.js geladen

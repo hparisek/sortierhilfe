@@ -351,10 +351,9 @@ const GANGFOLGE_11_ALIASES = {
   "otto loebe":"Otto-Loewe-Str.","loebe":"Otto-Loewe-Str."
 };
 
-if(typeof registerGangfolge === 'function') {
+
   registerGangfolge({
     name: '60486-11',
     route: GANGFOLGE_11_ROUTE,
     aliases: GANGFOLGE_11_ALIASES
   });
-}

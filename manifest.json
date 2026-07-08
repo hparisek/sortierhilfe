@@ -1,0 +1,21 @@
+{
+  "name": "Paket-Sortierhilfe Adam",
+  "short_name": "Sortierhilfe",
+  "description": "Paket-Sortierhilfe für DHL Briefträger",
+  "start_url": "/sortierhilfe/",
+  "display": "standalone",
+  "background_color": "#FFCC00",
+  "theme_color": "#FFCC00",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

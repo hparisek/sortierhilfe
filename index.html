@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Paket-Sortierhilfe v67</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #FFCC00 !important; font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+#app { padding: 0.75rem; background: #FFCC00; min-height: 100vh; }
+.header { margin-bottom: 0.75rem; }
+.header h2 { font-size: 15px; font-weight: 700; color: #222; display:flex; align-items:center; gap:6px; margin-bottom: 4px; }
+.header p { font-size: 12px; color: #444; margin-bottom: 6px; }
+.slot-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.slot-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.slot-btn { padding: 5px 9px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1.5px solid #cca800; background: #fff; color: #666; cursor: pointer; min-width: 40px; text-align: center; }
+.slot-btn.filled { background: #fff3b0; color: #222; border-color: #b38f00; }
+.slot-count { font-size: 10px; color: #888; }
+.slot-del { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; opacity: 0.4; }
+.slot-del.has-data { opacity: 1; color: #D85A30; }
+.layout { display: flex; gap: 10px; align-items: flex-start; width: 100%; }
+.col-left { flex: 0 0 auto; width: 210px; order: 2; }
+.col-right { flex: 1 1 auto; min-width: 0; order: 1; }
+.btn-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.mic-btn, .del-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1.5px solid #cca800; cursor: pointer; font-size: 13px; font-weight: 600; color: #222; width: 100%; }
+.mic-btn.listening { border-color: #D85A30; color: #D85A30; background: #fff3ef; animation: pulse 1.2s infinite; }
+.del-btn.listening { border-color: #185FA5; color: #185FA5; background: #eef4ff; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.hint { font-size: 11px; color: #555; margin: 4px 0 8px; min-height: 16px; }
+.result-card { background: #fff; border: 1.5px solid #cca800; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: none; }
+.result-card.show { display: block; }
+.result-addr { font-size: 13px; font-weight: 600; color: #222; }
+.result-pos { font-size: 12px; color: #555; margin-top: 3px; }
+.result-between { font-size: 12px; color: #185FA5; margin-top: 4px; font-weight: 600; }
+.result-notfound { font-size: 12px; color: #D85A30; margin-top: 3px; }
+.result-deleted { font-size: 12px; color: #D85A30; margin-top: 3px; font-weight: 600; }
+.list-header { font-size: 12px; font-weight: 600; color: #333; margin-bottom: 6px; }
+.pkg-list { display: flex; flex-direction: column; gap: 4px; }
+.pkg-item { background: #fff; border: 1px solid #cca800; border-radius: 8px; padding: 6px 8px; display: flex; align-items: center; gap: 6px; }
+.pkg-num { font-size: 11px; font-weight: 700; color: #666; min-width: 16px; flex-shrink: 0; }
+.pkg-addr { font-size: 12px; color: #222; flex: 1; display:flex; align-items:center; gap:4px; overflow:hidden; }
+.action-btns { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.clear-btn, .save-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; background: #fff; border: 1.5px solid #cca800; cursor: pointer; font-size: 12px; font-weight: 600; }
+.clear-btn { color: #D85A30; }
+.save-btn { color: #185FA5; }
+.picker { display: none; margin-top: 6px; background: #fff; border: 1.5px solid #185FA5; border-radius: 10px; padding: 10px 12px; }
+.picker.show { display: block; }
+.picker-title { font-size: 12px; font-weight: 600; color: #333; margin-bottom: 8px; }
+.picker-slots { display: flex; gap: 5px; flex-wrap: wrap; }
+.picker-slot { padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1.5px solid #cca800; background: #fff; color: #333; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 40px; }
+.picker-slot.filled { background: #fff3b0; border-color: #b38f00; }
+.picker-slot .ps-count { font-size: 10px; color: #888; font-weight: 400; }
+.picker-cancel { margin-top: 8px; font-size: 12px; color: #999; cursor: pointer; text-decoration: underline; }
+.slot-confirm { display: none; margin-top: 6px; background: #fff; border: 1.5px solid #D85A30; border-radius: 10px; padding: 10px 12px; }
+.slot-confirm.show { display: block; }
+.slot-confirm-text { font-size: 13px; color: #222; margin-bottom: 8px; }
+.slot-confirm-btns { display: flex; gap: 6px; }
+.confirm-box { display: none; margin-top: 6px; background: #fff; border: 1.5px solid #D85A30; border-radius: 10px; padding: 10px 12px; }
+.confirm-box.show { display: block; }
+.confirm-text { font-size: 13px; color: #222; margin-bottom: 8px; }
+.confirm-btns { display: flex; gap: 6px; }
+.confirm-yes { padding: 7px 14px; border-radius: 7px; background: #D85A30; border: none; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+.confirm-no { padding: 7px 14px; border-radius: 7px; background: #f0f0f0; border: 1px solid #ccc; color: #222; font-size: 13px; cursor: pointer; }
+.gang-selector { margin-bottom: 6px; }
+.gang-selector-label { font-size: 11px; color: #555; margin-bottom: 4px; }
+.gang-selector-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+.gang-sel-btn { padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1.5px solid #cca800; background: #fff8cc; color: #555; cursor: pointer; }
+.gang-sel-btn.active { background: #D85A30; border-color: #b34000; color: #fff; }
+.gang-header { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1.5px solid #cca800; }
+.gang-list { display: flex; flex-direction: column; gap: 3px; }
+.gang-item { border-radius: 6px; padding: 4px 8px; font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; background: #fff8cc; border: 1px solid #e6c200; color: #333; transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
+.gang-item.highlight { background: #D85A30; border-color: #b34000; color: #fff; font-weight: 700; }
+.gang-item.done-normal { background: #fffae8; border-color: #e6c200; color: #bba800; opacity: 0.7; text-decoration: line-through; }
+.gang-item.highlight.done-highlight { background: #f5b8a0; border-color: #e89070; color: #a03010; font-weight: 400; text-decoration: line-through; }
+.gang-num { font-size: 10px; color: #999; min-width: 18px; flex-shrink: 0; }
+.gang-item.highlight .gang-num { color: #ffd0b0; }
+.gang-item.done-normal .gang-num { color: #ccc; }
+.gang-item.highlight.done-highlight .gang-num { color: #e0b0a0; }
+.gang-pkg-badge { display: none; flex-shrink: 0; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; }
+.gang-item.highlight .gang-pkg-badge { display: inline-flex; }
+.gang-pkg-count { font-size: 10px; }
+.no-support { color: #D85A30; font-size: 13px; padding: 0.5rem 0; }
+/* R/B Bestätigung */
+/* Manuelle Eingabe Buttons */
+.manual-action-btns { display: flex; gap: 6px; margin-top: 6px; }
+.manual-action-btn { flex: 1; padding: 9px 4px; border-radius: 8px; border: 1.5px solid #cca800; font-size: 12px; font-weight: 700; cursor: pointer; }
+.manual-btn-pkg { background: #D85A30; color: #fff; border-color: #b34000; }
+.manual-btn-r   { background: #fff; color: #185FA5; border-color: #185FA5; }
+.manual-btn-b   { background: #fff; color: #E07800; border-color: #E07800; }
+/* Einschreiben / Behoerdlich Badges */
+.badge-r { display:none; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; background:#e8f0ff; color:#185FA5; border:1px solid #185FA5; align-items:center; cursor:pointer; }
+.badge-b { display:none; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; background:#fff8ee; color:#E07800; border:1px solid #E07800; align-items:center; cursor:pointer; }
+/* Einschreiben/Behoerdlich Mikrofon-Buttons */
+.rec-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1.5px solid #cca800; cursor: pointer; font-size: 13px; font-weight: 600; color: #222; width: 100%; }
+.rec-btn.listening-r { border-color: #185FA5; color: #185FA5; background: #eef4ff; animation: pulse 1.2s infinite; }
+.rec-btn.listening-b { border-color: #E07800; color: #E07800; background: #fff8ee; animation: pulse 1.2s infinite; }
+/* Manuelle Eingabe */
+.manual-panel { margin-top: 8px; }
+.manual-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; background: #fff; border: 1.5px solid #cca800; cursor: pointer; font-size: 12px; font-weight: 600; color: #555; width: 100%; margin-bottom: 0; }
+.manual-toggle.open { border-color: #185FA5; color: #185FA5; }
+.manual-selects { display: none; margin-top: 6px; background: #fff; border: 1.5px solid #cca800; border-radius: 10px; padding: 10px 12px; }
+.manual-selects.show { display: block; }
+.manual-label { font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 600; }
+.manual-select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cca800; background: #fff8cc; font-size: 13px; color: #222; margin-bottom: 8px; appearance: none; -webkit-appearance: none; cursor: pointer; }
+.manual-select:focus { outline: none; border-color: #185FA5; }
+.manual-btn { width: 100%; padding: 10px; border-radius: 8px; background: #D85A30; border: none; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.manual-btn:disabled { background: #ccc; cursor: default; }
+svg { flex-shrink: 0; }
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="ico-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 4.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M12 12l9-4.5"/><path d="M12 12v9"/><path d="M12 12L3 7.5"/><path d="M8.5 4.5l7 3.5"/></symbol>
+  <symbol id="ico-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></symbol>
+  <symbol id="ico-mic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M18.89 13.23A7 7 0 0019 10"/><path d="M5 10a7 7 0 0012 5"/><path d="M15 9.34V5a3 3 0 00-5.68-1.33"/><path d="M9 9v3a3 3 0 005.12 2.12"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></symbol>
+  <symbol id="ico-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></symbol>
+  <symbol id="ico-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+</svg>
+
+<div id="app">
+  <div class="header">
+    <h2><svg width="16" height="16"><use href="#ico-package"/></svg> Paket-Sortierhilfe <span style="font-weight:400;color:#666;font-size:12px;">v67</span></h2>
+    <p>Sprich eine Adresse oder Packstation ein.</p>
+    <div class="slot-row" id="slotRow"></div>
+  </div>
+  <div class="slot-confirm" id="slotConfirm">
+    <div class="slot-confirm-text" id="slotConfirmText"></div>
+    <div class="slot-confirm-btns">
+      <button class="confirm-yes" id="slotConfirmYes">Ja, leeren</button>
+      <button class="confirm-no" onclick="hideSlotConfirm()">Abbrechen</button>
+    </div>
+  </div>
+  <div id="no-support" class="no-support" style="display:none">Spracherkennung nicht unterstuetzt. Chrome verwenden.</div>
+  <div class="layout">
+    <div class="col-left">
+      <div class="btn-row">
+        <button class="mic-btn" id="micBtn" onclick="toggleListen('add')">
+          <svg width="15" height="15"><use href="#ico-mic"/></svg>
+          <span id="micLabel">Adresse sprechen</span>
+        </button>
+        <button class="del-btn" id="delBtn" onclick="toggleListen('del')">
+          <svg width="15" height="15"><use id="delIcon" href="#ico-mic-off"/></svg>
+          <span id="delLabel">Position loeschen</span>
+        </button>
+        <button class="rec-btn" id="recRBtn" onclick="toggleListen('r')">
+          <svg width="15" height="15"><use href="#ico-mic-off" id="recRIcon"/></svg>
+          <span id="recRLabel">Einschreiben (R)</span>
+        </button>
+        <button class="rec-btn" id="recBBtn" onclick="toggleListen('b')">
+          <svg width="15" height="15"><use href="#ico-mic-off" id="recBIcon"/></svg>
+          <span id="recBLabel">Behoerdlich (B)</span>
+        </button>
+        <button class="del-btn" id="delRBtn" onclick="toggleListen('delR')" style="color:#185FA5;">
+          <svg width="15" height="15"><use id="delRIcon" href="#ico-mic-off"/></svg>
+          <span id="delRLabel">Einschreiben loeschen (R)</span>
+        </button>
+        <button class="del-btn" id="delBBtn" onclick="toggleListen('delB')" style="color:#E07800;">
+          <svg width="15" height="15"><use id="delBIcon" href="#ico-mic-off"/></svg>
+          <span id="delBLabel">Behoerdlich loeschen (B)</span>
+        </button>
+      </div>
+      <!-- Manuelle Eingabe -->
+      <div class="manual-panel">
+        <button class="manual-toggle" id="manualToggle" onclick="toggleManual()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Manuell eingeben
+        </button>
+        <div class="manual-selects" id="manualSelects">
+          <div class="manual-label">1. Straße wählen:</div>
+          <select class="manual-select" id="streetSelect" onchange="onStreetChange()">
+            <option value="">-- Straße --</option>
+          </select>
+          <div class="manual-label">2. Hausnummer wählen:</div>
+          <select class="manual-select" id="numSelect" disabled>
+            <option value="">-- zuerst Straße wählen --</option>
+          </select>
+          <div class="manual-action-btns">
+            <button class="manual-action-btn manual-btn-pkg" id="manualAddBtn" onclick="manualAdd('pkg')" disabled>📦 Paket</button>
+            <button class="manual-action-btn manual-btn-r"   id="manualAddBtnR" onclick="manualAdd('r')" disabled>R</button>
+            <button class="manual-action-btn manual-btn-b"   id="manualAddBtnB" onclick="manualAdd('b')" disabled>B</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint" id="hint">Taste druecken, dann sprechen</div>
+      <div class="result-card" id="resultCard">
+        <div class="result-addr" id="resultAddr"></div>
+        <div class="result-pos" id="resultPos"></div>
+        <div class="result-between" id="resultBetween"></div>
+        <div class="result-notfound" id="resultNotFound"></div>
+        <div class="result-deleted" id="resultDeleted"></div>
+      </div>
+      <div id="listSection" style="display:none">
+        <div class="list-header">Sortierliste (<span id="listCount">0</span>)</div>
+        <div class="pkg-list" id="pkgList"></div>
+        <div class="action-btns">
+          <button class="clear-btn" onclick="askClear()"><svg width="13" height="13"><use href="#ico-trash"/></svg> Liste leeren</button>
+          <button class="save-btn" onclick="showSavePicker()"><svg width="13" height="13"><use href="#ico-save"/></svg> Liste speichern</button>
+        </div>
+        <div class="picker" id="picker">
+          <div class="picker-title">Unter welchem Tag speichern?</div>
+          <div class="picker-slots" id="pickerSlots"></div>
+          <div class="picker-cancel" onclick="hidePicker()">Abbrechen</div>
+        </div>
+        <div class="confirm-box" id="confirmBox">
+          <div class="confirm-text">Wirklich alles loeschen?</div>
+          <div class="confirm-btns">
+            <button class="confirm-yes" onclick="clearAll()">Ja</button>
+            <button class="confirm-no" onclick="cancelClear()">Nein</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <div class="gang-selector">
+        <div class="gang-selector-label">Gangfolge:</div>
+        <div class="gang-selector-btns" id="gangSelectorBtns"></div>
+      </div>
+      <div class="gang-header">Gangfolge <span id="gangfolgeLabel">Standard</span> – antippen = erledigt</div>
+      <div class="gang-list" id="gangList"></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script src="gangfolge-17.js"></script>
+<script src="gangfolge-05.js"></script>
+<script src="gangfolge-11.js"></script>
+<script>
+const LS_KEY='psh_adam_v1';
+const DAYS=['Mo','Di','Mi','Do','Fr','Sa'];
+// Gangfolgen werden dynamisch durch externe .js Dateien registriert
+const GANGFOLGEN = [];
+let ALIASES = {};
+
+function registerGangfolge(g){
+  GANGFOLGEN.push(g);
+}
+let activeRouteIdx=0;
+let ROUTE=GANGFOLGEN[0].route;
+// Aliases werden aus gangfolge-XX.js geladen
+const ZAHLEN={"null":0,"eins":1,"ein":1,"eine":1,"zwei":2,"drei":3,"vier":4,"fuenf":5,"fünf":5,"sechs":6,"sieben":7,"acht":8,"neun":9,"zehn":10,"elf":11,"zwoelf":12,"zwölf":12,"dreizehn":13,"vierzehn":14,"fuenfzehn":15,"sechzehn":16,"siebzehn":17,"achtzehn":18,"neunzehn":19,"zwanzig":20,"einundzwanzig":21,"zweiundzwanzig":22,"dreiundzwanzig":23,"vierundzwanzig":24,"fuenfundzwanzig":25,"sechsundzwanzig":26,"siebenundzwanzig":27,"achtundzwanzig":28,"neunundzwanzig":29,"dreissig":30,"dreißig":30,"einunddreissig":31,"zweiunddreissig":32,"dreiunddreissig":33,"vierunddreissig":34,"fuenfunddreissig":35,"sechsunddreissig":36,"siebenunddreissig":37,"achtunddreissig":38,"neununddreissig":39,"vierzig":40,"einundvierzig":41,"zweiundvierzig":42,"dreiundvierzig":43,"vierundvierzig":44,"fuenfundvierzig":45,"sechsundvierzig":46,"siebenundvierzig":47,"achtundvierzig":48,"neunundvierzig":49,"fuenfzig":50};
+let packages=[],savedSlots=Array(6).fill(null);
+let rSet=new Set(),bSet=new Set(); // Einschreiben / Behoerdlich
+let recAdd=null,recDel=null,recR=null,recB=null;
+let lisAdd=false,lisDel=false,lisR=false,lisB=false;
+let pendingDeleteSlot=-1,doneSet=new Set();
+
+function lsSave(){try{localStorage.setItem(LS_KEY,JSON.stringify({savedSlots,activeRouteIdx}));}catch(e){}}
+function lsLoad(){try{const raw=localStorage.getItem(LS_KEY);if(!raw)return;const d=JSON.parse(raw);if(d.savedSlots&&Array.isArray(d.savedSlots))savedSlots=d.savedSlots;if(typeof d.activeRouteIdx==='number')activeRouteIdx=d.activeRouteIdx;}catch(e){}}
+
+function buildGangSelectorBtns(){
+  const c=document.getElementById('gangSelectorBtns');c.innerHTML='';
+  GANGFOLGEN.forEach((g,i)=>{const btn=document.createElement('button');btn.className='gang-sel-btn'+(i===activeRouteIdx?' active':'');btn.textContent=g.name;btn.onclick=()=>switchRoute(i);c.appendChild(btn);});
+}
+function switchRoute(i){
+  activeRouteIdx=i;
+  ROUTE=GANGFOLGEN[i].route;
+  ALIASES=GANGFOLGEN[i].aliases||{};
+  doneSet=new Set();packages=[];rSet=new Set();bSet=new Set();
+  document.getElementById('gangfolgeLabel').textContent=GANGFOLGEN[i].name;
+  buildGangSelectorBtns();buildGangList();renderList();updateHighlights();applyRBClasses();
+  document.getElementById('hint').textContent='Gangfolge '+GANGFOLGEN[i].name+' aktiviert';
+  document.getElementById('resultCard').className='result-card';
+  ['resultAddr','resultPos','resultBetween','resultNotFound','resultDeleted'].forEach(id=>document.getElementById(id).textContent='');
+  hidePicker();hideSlotConfirm();lsSave();
+}
+function buildGangList(){
+  const gl=document.getElementById('gangList');gl.innerHTML='';
+  ROUTE.forEach(([s,h],i)=>{
+    const el=document.createElement('div');el.className='gang-item';el.id='gang-'+i;
+    el.innerHTML='<span class="gang-num">'+(i+1)+'</span><span class="gang-pkg-badge" id="badge-'+i+'"><svg width="11" height="11" style="stroke:#fff"><use href="#ico-package"/></svg><span class="gang-pkg-count" id="badge-count-'+i+'"></span></span><span class="badge-r" id="badge-r-'+i+'">R</span><span class="badge-b" id="badge-b-'+i+'">B</span>'+s+' '+h;
+    el.addEventListener('click',()=>toggleDone(i));
+    // Langes Drücken = Google Maps öffnen
+    let pressTimer=null;
+        el.addEventListener('touchstart',(e)=>{
+      pressTimer=setTimeout(()=>{
+        const addr=encodeURIComponent(s+' '+h+', Frankfurt');
+        window.open('https://maps.google.com/?q='+addr,'_blank');
+      },2000);
+    },{passive:true});
+    el.addEventListener('touchend',()=>{ if(pressTimer){clearTimeout(pressTimer);pressTimer=null;} },{passive:true});
+    el.addEventListener('touchmove',()=>{ if(pressTimer){clearTimeout(pressTimer);pressTimer=null;} },{passive:true});
+    gl.appendChild(el);
+  });
+}
+function toggleDone(i){if(doneSet.has(i))doneSet.delete(i);else doneSet.add(i);applyGangClasses();}
+function applyGangClasses(){
+  ROUTE.forEach((_,i)=>{const el=document.getElementById('gang-'+i);if(!el)return;const isH=el.classList.contains('highlight'),isDone=doneSet.has(i);el.classList.remove('done-normal','done-highlight');if(isDone){if(isH)el.classList.add('done-highlight');else el.classList.add('done-normal');}});
+}
+function applyRBClasses(){
+  ROUTE.forEach((_,i)=>{
+    const el=document.getElementById('gang-'+i); if(!el) return;
+    const br=document.getElementById('badge-r-'+i);
+    const bb=document.getElementById('badge-b-'+i);
+    if(br) br.style.display=rSet.has(i)?'inline-flex':'none';
+    if(bb) bb.style.display=bSet.has(i)?'inline-flex':'none';
+  });
+}
+
+function buildSlotRow(){
+  const row=document.getElementById('slotRow');row.innerHTML='';
+  DAYS.forEach((d,i)=>{
+    const wrap=document.createElement('div');wrap.className='slot-wrap';
+    const btn=document.createElement('button');btn.id='slot-btn-'+i;btn.className='slot-btn';btn.onclick=()=>loadSlot(i);
+    const count=document.createElement('div');count.id='slot-count-'+i;count.className='slot-count';
+    const delBtn=document.createElement('button');delBtn.id='slot-del-'+i;delBtn.className='slot-del';
+    delBtn.innerHTML='<svg width="12" height="12"><use href="#ico-trash"/></svg>';
+    delBtn.onclick=(e)=>{e.stopPropagation();askDeleteSlot(i);};
+    wrap.appendChild(btn);wrap.appendChild(count);wrap.appendChild(delBtn);row.appendChild(wrap);
+  });updateSlotButtons();
+}
+function updateSlotButtons(){
+  DAYS.forEach((d,i)=>{const slot=savedSlots[i];const pkgs=slot&&slot.packages?slot.packages:(Array.isArray(slot)?slot:null);const filled=pkgs&&pkgs.length>0;document.getElementById('slot-btn-'+i).className='slot-btn'+(filled?' filled':'');document.getElementById('slot-btn-'+i).textContent=d;document.getElementById('slot-count-'+i).textContent=filled?pkgs.length+' Pkt':'leer';document.getElementById('slot-del-'+i).className='slot-del'+(filled?' has-data':'');});
+}
+function askDeleteSlot(i){pendingDeleteSlot=i;hideSlotConfirm();hidePicker();document.getElementById('slotConfirmText').textContent=DAYS[i]+': Gespeicherte Liste wirklich leeren?';document.getElementById('slotConfirmYes').onclick=()=>confirmDeleteSlot();document.getElementById('slotConfirm').className='slot-confirm show';}
+function confirmDeleteSlot(){if(pendingDeleteSlot>=0){savedSlots[pendingDeleteSlot]=null;updateSlotButtons();lsSave();document.getElementById('hint').textContent=DAYS[pendingDeleteSlot]+': Speicher geleert.';pendingDeleteSlot=-1;}hideSlotConfirm();}
+function hideSlotConfirm(){document.getElementById('slotConfirm').className='slot-confirm';}
+function showSavePicker(){
+  const slots=document.getElementById('pickerSlots');slots.innerHTML='';
+  DAYS.forEach((d,i)=>{const slot=savedSlots[i];const pkgs=slot&&slot.packages?slot.packages:(Array.isArray(slot)?slot:null);const filled=pkgs&&pkgs.length>0;const btn=document.createElement('button');btn.className='picker-slot'+(filled?' filled':'');btn.innerHTML=d+'<span class="ps-count">'+(filled?pkgs.length+' Pkt':'leer')+'</span>';btn.onclick=()=>saveToSlot(i);slots.appendChild(btn);});
+  document.getElementById('picker').className='picker show';document.getElementById('confirmBox').className='confirm-box';hideSlotConfirm();
+}
+function hidePicker(){document.getElementById('picker').className='picker';}
+function saveToSlot(i){savedSlots[i]={packages:JSON.parse(JSON.stringify(packages)),done:[...doneSet],rArr:[...rSet],bArr:[...bSet],routeIdx:activeRouteIdx};updateSlotButtons();lsSave();hidePicker();document.getElementById('hint').textContent='Gespeichert unter '+DAYS[i]+' ('+packages.length+' Pakete)';}
+function loadSlot(i){
+  const slot=savedSlots[i];
+  const pkgs=slot&&slot.packages ? slot.packages : (Array.isArray(slot)&&slot.length ? slot : null);
+  if(!pkgs||!pkgs.length){document.getElementById('hint').textContent=DAYS[i]+': noch kein Eintrag gespeichert.';return;}
+  packages=JSON.parse(JSON.stringify(pkgs));
+  doneSet=slot.done ? new Set(slot.done) : new Set();
+  rSet=slot.rArr ? new Set(slot.rArr) : new Set();
+  bSet=slot.bArr ? new Set(slot.bArr) : new Set();
+  // Gangfolge wiederherstellen falls gespeichert
+  if(typeof slot.routeIdx==='number' && slot.routeIdx!==activeRouteIdx){
+    activeRouteIdx=slot.routeIdx;
+    ROUTE=GANGFOLGEN[activeRouteIdx].route;
+  ALIASES=(GANGFOLGEN[activeRouteIdx]&&GANGFOLGEN[activeRouteIdx].aliases)||{};
+    document.getElementById('gangfolgeLabel').textContent=GANGFOLGEN[activeRouteIdx].name;
+    buildGangSelectorBtns();
+    buildGangList();
+  }
+  renderList();updateHighlights();applyRBClasses();
+  document.getElementById('resultCard').className='result-card';
+  ['resultAddr','resultPos','resultBetween','resultNotFound','resultDeleted'].forEach(id=>document.getElementById(id).textContent='');
+  document.getElementById('hint').textContent=DAYS[i]+' geladen ('+packages.length+' Pakete) – Gangfolge: '+GANGFOLGEN[activeRouteIdx].name;
+  hidePicker();hideSlotConfirm();
+}
+function updateHighlights(){
+  const countMap={};packages.forEach(([s,h])=>{const idx=findIdx(s,h);if(idx>=0)countMap[idx]=(countMap[idx]||0)+1;});
+  ROUTE.forEach((_,i)=>{const el=document.getElementById('gang-'+i);if(!el)return;el.classList.remove('highlight');const bc=document.getElementById('badge-count-'+i);if(bc)bc.textContent='';});
+  Object.entries(countMap).forEach(([idx,cnt])=>{const el=document.getElementById('gang-'+idx);if(!el)return;el.classList.add('highlight');const bc=document.getElementById('badge-count-'+idx);if(bc)bc.textContent='('+cnt+')';});
+  applyGangClasses();
+  applyRBClasses();
+}
+function resetUI(){document.getElementById('resultCard').className='result-card';['resultAddr','resultPos','resultBetween','resultNotFound','resultDeleted'].forEach(id=>document.getElementById(id).textContent='');document.getElementById('hint').textContent='Taste druecken, dann sprechen';document.getElementById('listSection').style.display='none';document.getElementById('confirmBox').className='confirm-box';hidePicker();hideSlotConfirm();updateHighlights();}
+function parseNum(t){t=t.toLowerCase().replace(/\u00df/g,'ss');const m=t.match(/(\d+)/);if(m)return parseInt(m[1]);for(const[w,v]of Object.entries(ZAHLEN))if(t.includes(w))return v;return null;}
+function parseAddr(text){
+  let t=text.toLowerCase().replace(/\u00df/g,'ss')
+    .replace(/\bzwei\s*hundert\s*drei\b/g,'203').replace(/\bzwei\s*hundert\s*siebenundzwanzig\b/g,'227')
+    .replace(/\bachtundfuenfzig\b/g,'58').replace(/(\d+)\s+bis\s+(\d+)/g,'$1-$2').replace(/\bsiebzig\b/g,'70').replace(/\bachtzig\b/g,'80')
+    .replace(/\bneunzig\b/g,'90').replace(/\bsechzig\b/g,'60').replace(/\bfuenfzig\b/g,'50')
+    .replace(/\bvierzig\b/g,'40').replace(/\bdreissig\b/g,'30').replace(/\bzwanzig\b/g,'20')
+    .replace(/\bzehn\b/g,'10').replace(/\belf\b/g,'11').replace(/\bzwoelf\b/g,'12')
+    .replace(/\bdreizehn\b/g,'13').replace(/\bvierzehn\b/g,'14').replace(/\bfuenfzehn\b/g,'15')
+    .replace(/\bsechzehn\b/g,'16').replace(/\bsiebzehn\b/g,'17').replace(/\bachtzehn\b/g,'18').replace(/\bneunzehn\b/g,'19')
+    .replace(/\beinundzwanzig\b/g,'21').replace(/\bzweiundzwanzig\b/g,'22').replace(/\bdreiundzwanzig\b/g,'23').replace(/\bvierundzwanzig\b/g,'24')
+    .replace(/\bfuenfundzwanzig\b/g,'25').replace(/\bsechsundzwanzig\b/g,'26').replace(/\bsiebenundzwanzig\b/g,'27').replace(/\bachtundzwanzig\b/g,'28').replace(/\bneunundzwanzig\b/g,'29')
+    .replace(/\beinunddreissig\b/g,'31').replace(/\bzweiunddreissig\b/g,'32').replace(/\bdreiunddreissig\b/g,'33').replace(/\bvierunddreissig\b/g,'34')
+    .replace(/\bfuenfunddreissig\b/g,'35').replace(/\bsechsunddreissig\b/g,'36').replace(/\bsiebenunddreissig\b/g,'37').replace(/\bachtunddreissig\b/g,'38').replace(/\bneununddreissig\b/g,'39')
+    .replace(/\beinundvierzig\b/g,'41').replace(/\bzweiundvierzig\b/g,'42').replace(/\bdreiundvierzig\b/g,'43').replace(/\bvierundvierzig\b/g,'44')
+    .replace(/\bfuenfundvierzig\b/g,'45').replace(/\bsechsundvierzig\b/g,'46').replace(/\bsiebenundvierzig\b/g,'47').replace(/\bachtundvierzig\b/g,'48').replace(/\bneunundvierzig\b/g,'49')
+    .replace(/\beins\b/g,'1').replace(/\bzwei\b/g,'2').replace(/\bdrei\b/g,'3').replace(/\bvier\b/g,'4')
+    .replace(/\bfuenf\b/g,'5').replace(/\bsechs\b/g,'6').replace(/\bsieben\b/g,'7').replace(/\bacht\b/g,'8').replace(/\bneun\b/g,'9');
+  let street=null,num=null;
+  for(const[k,v]of Object.entries(ALIASES))if(t.includes(k)){street=v;break;}
+  const m=t.match(/(\d+\s*[a-d]?(?:\s*-\s*\d+)?)/);if(m)num=m[1].replace(/\s/g,'');
+  // Adress-Aliase: Einzelnummern auf Bereichsadressen umleiten
+  // Solmsstr. 83-91
+  if(street==='Solmsstr.'&&['83','91'].includes(num)) num='83-91';
+  // Solmsstr. 27-37
+  if(street==='Solmsstr.'&&['27','28','29','30','31','32','33','34','35','36','37'].includes(num)) num='27-37';
+  // Franklinstr. 61-63
+  if(street==='Franklinstr.'&&['61','63'].includes(num)) num='61-63';
+  // Kreuznacher Str. 51-52
+  if(street==='Kreuznacher Str.'&&['51','52'].includes(num)) num='51-52';
+  return(street&&num)?[street,num]:null;
+}
+function findIdx(s,n){return ROUTE.findIndex(([rs,rh])=>rs===s&&rh.toLowerCase()===n.toLowerCase());}
+function insert(street,num){const ri=findIdx(street,num);if(ri===-1)return null;let pos=packages.length;for(let i=0;i<packages.length;i++)if(ri<findIdx(packages[i][0],packages[i][1])){pos=i;break;}packages.splice(pos,0,[street,num]);return pos;}
+function renderResult(street,num,pos){
+  document.getElementById('resultCard').className='result-card show';
+  document.getElementById('resultDeleted').textContent='';document.getElementById('resultAddr').textContent=street+' '+num;
+  document.getElementById('resultNotFound').textContent='';document.getElementById('resultBetween').textContent='';
+  if(pos===null){document.getElementById('resultPos').textContent='';document.getElementById('resultNotFound').textContent='Nicht gefunden.';return;}
+  const total=packages.length;document.getElementById('resultPos').textContent='Position '+(pos+1)+' von '+total;
+  let b='';
+  if(pos===0&&total===1)b='Erstes Paket';
+  else if(pos===0)b='Vorne (vor '+packages[1][0]+' '+packages[1][1]+')';
+  else if(pos===total-1)b='Hinten (nach '+packages[pos-1][0]+' '+packages[pos-1][1]+')';
+  else b='Zw. '+packages[pos-1][0]+' '+packages[pos-1][1]+' + '+packages[pos+1][0]+' '+packages[pos+1][1];
+  document.getElementById('resultBetween').textContent=b;renderList();updateHighlights();
+}
+function renderList(){
+  const sec=document.getElementById('listSection'),list=document.getElementById('pkgList');
+  document.getElementById('listCount').textContent=packages.length;
+  if(!packages.length){sec.style.display='none';return;}
+  sec.style.display='block';list.innerHTML='';
+  packages.forEach(([s,h],i)=>{const el=document.createElement('div');el.className='pkg-item';el.innerHTML='<span class="pkg-num">'+(i+1)+'.</span><span class="pkg-addr"><svg width="12" height="12"><use href="#ico-package"/></svg>'+s+' '+h+'</span>';list.appendChild(el);});
+}
+function askClear(){hidePicker();hideSlotConfirm();document.getElementById('confirmBox').className='confirm-box show';}
+function cancelClear(){document.getElementById('confirmBox').className='confirm-box';}
+function clearAll(){packages=[];doneSet=new Set();rSet=new Set();bSet=new Set();lsSave();resetUI();applyRBClasses();}
+function onAdd(text){
+  document.getElementById('hint').textContent=text;document.getElementById('resultDeleted').textContent='';
+  const p=parseAddr(text);
+  if(!p){document.getElementById('resultCard').className='result-card show';document.getElementById('resultAddr').textContent=text;document.getElementById('resultPos').textContent='';document.getElementById('resultBetween').textContent='';document.getElementById('resultNotFound').textContent='Nicht erkannt.';return;}
+  renderResult(p[0],p[1],insert(p[0],p[1]));
+}
+function onDel(text){
+  document.getElementById('hint').textContent=text;const n=parseNum(text);
+  document.getElementById('resultCard').className='result-card show';
+  ['resultAddr','resultPos','resultBetween','resultNotFound','resultDeleted'].forEach(id=>document.getElementById(id).textContent='');
+  if(n===null||n<1||n>packages.length){document.getElementById('resultNotFound').textContent='Position nicht erkannt.';return;}
+  const del=packages[n-1];packages.splice(n-1,1);
+  document.getElementById('resultDeleted').textContent='Pos. '+n+' geloescht: '+del[0]+' '+del[1];
+  if(!packages.length)setTimeout(resetUI,1500);else{renderList();updateHighlights();}
+}
+function toggleManual(){
+  const panel=document.getElementById('manualSelects');
+  const btn=document.getElementById('manualToggle');
+  const isOpen=panel.classList.contains('show');
+  if(isOpen){panel.classList.remove('show');btn.classList.remove('open');}
+  else{panel.classList.add('show');btn.classList.add('open');populateStreets();}
+}
+
+function populateStreets(){
+  const sel=document.getElementById('streetSelect');
+  const current=sel.value;
+  // Get unique streets in route order
+  const streets=[];
+  const seen=new Set();
+  ROUTE.forEach(([s])=>{if(!seen.has(s)){seen.add(s);streets.push(s);}});
+  sel.innerHTML='<option value="">-- Straße --</option>';
+  streets.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s; opt.textContent=s;
+    if(s===current) opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+
+function onStreetChange(){
+  const street=document.getElementById('streetSelect').value;
+  const numSel=document.getElementById('numSelect');
+  const addBtn=document.getElementById('manualAddBtn');
+  numSel.innerHTML='<option value="">-- Hausnummer --</option>';
+  numSel.disabled=!street;
+  addBtn.disabled=true;
+  if(!street) return;
+  // Hausnummern sammeln und numerisch sortieren
+  const nums=[];
+  ROUTE.forEach(([s,h])=>{ if(s===street) nums.push(h); });
+  nums.sort((a,b)=>{
+    const na=parseInt(a), nb=parseInt(b);
+    if(na!==nb) return na-nb;
+    return a.localeCompare(b); // z.B. 16 vor 16a
+  });
+  nums.forEach(h=>{
+    const opt=document.createElement('option');
+    opt.value=h; opt.textContent=h;
+    numSel.appendChild(opt);
+  });
+}
+
+function manualAdd(mode){
+  const street=document.getElementById('streetSelect').value;
+  const num=document.getElementById('numSelect').value;
+  if(!street||!num) return;
+  if(mode==='pkg'){
+    const pos=insert(street,num);
+    renderResult(street,num,pos);
+  } else {
+    const idx=findIdx(street,num);
+    if(idx>=0){
+      if(mode==='r'){ rSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='R markiert: '+street+' '+num; }
+      else           { bSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='B markiert: '+street+' '+num; }
+    } else {
+      document.getElementById('hint').textContent='Adresse nicht gefunden.';
+    }
+  }
+  document.getElementById('numSelect').value='';
+  document.getElementById('manualAddBtn').disabled=true;
+  document.getElementById('manualAddBtnR').disabled=true;
+  document.getElementById('manualAddBtnB').disabled=true;
+}
+
+// Enable add button when number selected
+document.addEventListener('change',function(e){
+  if(e.target.id==='numSelect'){
+    const v=!!e.target.value;
+    document.getElementById('manualAddBtn').disabled=!v;
+    document.getElementById('manualAddBtnR').disabled=!v;
+    document.getElementById('manualAddBtnB').disabled=!v;
+  }
+});
+
+function onR(text){
+  document.getElementById('hint').textContent=text;
+  const p=parseAddr(text);
+  if(!p){document.getElementById('hint').textContent='Nicht erkannt: '+text;}
+  else {
+    const idx=findIdx(p[0],p[1]);
+    if(idx>=0){rSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='R markiert: '+p[0]+' '+p[1];}
+    else{document.getElementById('hint').textContent='Nicht gefunden: '+p[0]+' '+p[1];}
+  }
+  // Dauermodus: automatisch neu starten wenn noch aktiv
+  if(lisR && recR){ setTimeout(()=>{ try{recR.start();}catch(e){} },300); }
+}
+
+function onB(text){
+  document.getElementById('hint').textContent=text;
+  const p=parseAddr(text);
+  if(!p){document.getElementById('hint').textContent='Nicht erkannt: '+text;}
+  else {
+    const idx=findIdx(p[0],p[1]);
+    if(idx>=0){bSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='B markiert: '+p[0]+' '+p[1];}
+    else{document.getElementById('hint').textContent='Nicht gefunden: '+p[0]+' '+p[1];}
+  }
+  // Dauermodus: automatisch neu starten wenn noch aktiv
+  if(lisB && recB){ setTimeout(()=>{ try{recB.start();}catch(e){} },300); }
+}
+
+function onDelR(text){
+  document.getElementById('hint').textContent=text;
+  const p=parseAddr(text);
+  if(!p){document.getElementById('hint').textContent='Nicht erkannt: '+text;return;}
+  const idx=findIdx(p[0],p[1]);
+  if(idx>=0&&rSet.has(idx)){
+    rSet.delete(idx);applyRBClasses();
+    document.getElementById('hint').textContent='R geloescht: '+p[0]+' '+p[1];
+  } else {
+    document.getElementById('hint').textContent='Kein R gefunden: '+p[0]+' '+p[1];
+  }
+}
+
+function onDelB(text){
+  document.getElementById('hint').textContent=text;
+  const p=parseAddr(text);
+  if(!p){document.getElementById('hint').textContent='Nicht erkannt: '+text;return;}
+  const idx=findIdx(p[0],p[1]);
+  if(idx>=0&&bSet.has(idx)){
+    bSet.delete(idx);applyRBClasses();
+    document.getElementById('hint').textContent='B geloescht: '+p[0]+' '+p[1];
+  } else {
+    document.getElementById('hint').textContent='Kein B gefunden: '+p[0]+' '+p[1];
+  }
+}
+
+function toggleListen(mode){
+  // Stop all others first
+  if(mode!=='add'&&lisAdd&&recAdd) recAdd.stop();
+  if(mode!=='del'&&lisDel&&recDel) recDel.stop();
+  if(mode!=='r'&&lisR&&recR) recR.stop();
+  if(mode!=='b'&&lisB&&recB) recB.stop();
+  if(mode==='add'){if(lisAdd&&recAdd){recAdd.stop();return;}if(recAdd)recAdd.start();}
+  else if(mode==='del'){if(lisDel&&recDel){recDel.stop();return;}if(recDel)recDel.start();}
+  else if(mode==='r'){
+    if(lisR&&recR){lisR=false;recR.stop();return;}
+    lisR=true;if(recR)recR.start();
+  }
+  else if(mode==='b'){
+    if(lisB&&recB){lisB=false;recB.stop();return;}
+    lisB=true;if(recB)recB.start();
+  }
+}
+window.addEventListener('load',()=>{
+  lsLoad();
+  ROUTE=GANGFOLGEN[activeRouteIdx].route;
+  ALIASES=(GANGFOLGEN[activeRouteIdx]&&GANGFOLGEN[activeRouteIdx].aliases)||{};
+  document.getElementById('gangfolgeLabel').textContent=GANGFOLGEN[activeRouteIdx].name;
+  buildGangSelectorBtns();buildGangList();buildSlotRow();
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('no-support').style.display='block';document.getElementById('micBtn').style.display='none';document.getElementById('delBtn').style.display='none';return;}
+  recAdd=new SR();recAdd.lang='de-DE';recAdd.interimResults=false;recAdd.maxAlternatives=3;
+  recAdd.onstart=()=>{lisAdd=true;document.getElementById('micBtn').className='mic-btn listening';document.getElementById('micLabel').textContent='Zuhoeren...';document.getElementById('hint').textContent='Adresse sprechen...';};
+  recAdd.onend=()=>{lisAdd=false;document.getElementById('micBtn').className='mic-btn';document.getElementById('micLabel').textContent='Adresse sprechen';};
+  recAdd.onresult=(e)=>onAdd(e.results[0][0].transcript);
+  recAdd.onerror=(e)=>{document.getElementById('hint').textContent='Fehler: '+e.error;};
+  recDel=new SR();recDel.lang='de-DE';recDel.interimResults=false;recDel.maxAlternatives=3;
+  recDel.onstart=()=>{lisDel=true;document.getElementById('delBtn').className='del-btn listening';document.getElementById('delIcon').setAttribute('href','#ico-mic');document.getElementById('delLabel').textContent='Zuhoeren...';document.getElementById('hint').textContent='Z.B. "sieben" sprechen...';};
+  recDel.onend=()=>{lisDel=false;document.getElementById('delBtn').className='del-btn';document.getElementById('delIcon').setAttribute('href','#ico-mic-off');document.getElementById('delLabel').textContent='Position loeschen';};
+  recDel.onresult=(e)=>onDel(e.results[0][0].transcript);
+  recDel.onerror=(e)=>{document.getElementById('hint').textContent='Fehler: '+e.error;};
+
+
+  // ── R/B Einzel-Modus (wie Adresse sprechen) ────────────
+  let activeRB = null;
+
+  function stopRB(){
+    activeRB=null;
+    if(recR)try{recR.stop();}catch(e){}
+    if(recB)try{recB.stop();}catch(e){}
+    ['recRBtn','recBBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='rec-btn';});
+    ['delRBtn','delBBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='del-btn';});
+    ['recRIcon','recBIcon','delRIcon','delBIcon'].forEach(id=>{const el=document.getElementById(id);if(el)el.setAttribute('href','#ico-mic-off');});
+    document.getElementById('recRLabel').textContent='Einschreiben (R)';
+    document.getElementById('recBLabel').textContent='Behoerdlich (B)';
+    if(document.getElementById('delRLabel'))document.getElementById('delRLabel').textContent='Einschreiben loeschen (R)';
+    if(document.getElementById('delBLabel'))document.getElementById('delBLabel').textContent='Behoerdlich loeschen (B)';
+    document.getElementById('hint').textContent='Taste druecken, dann sprechen';
+  }
+
+  window.toggleListen = function(mode){
+    // R/B Eingabe und Lösch-Modi
+    if(mode==='r'||mode==='b'||mode==='delR'||mode==='delB'){
+      if(activeRB===mode){ stopRB(); return; }
+      startRB(mode);
+      return;
+    }
+    // Normaler add/del Modus
+    stopRB();
+    if(mode==='add'){
+      if(lisDel&&recDel)recDel.stop();
+      if(lisAdd&&recAdd){recAdd.stop();return;}
+      if(recAdd)recAdd.start();
+    } else if(mode==='del'){
+      if(lisAdd&&recAdd)recAdd.stop();
+      if(lisDel&&recDel){recDel.stop();return;}
+      if(recDel)recDel.start();
+    }
+  };
+
+  recR = new SR();
+  recR.lang='de-DE'; recR.interimResults=false; recR.maxAlternatives=3;
+  recR.onstart=()=>{
+    document.getElementById('recRBtn').className='rec-btn listening-r';
+    document.getElementById('recRIcon').setAttribute('href','#ico-mic');
+    document.getElementById('recRLabel').textContent='Zuhoeren (R)...';
+    document.getElementById('hint').textContent='Einschreiben-Adresse sprechen...';
+  };
+  recR.onresult=(e)=>{
+    const text=e.results[0][0].transcript;
+    document.getElementById('hint').textContent=text;
+    const p=parseAddr(text);
+    if(!p){ document.getElementById('hint').textContent='Nicht erkannt: '+text; }
+    else {
+      const idx=findIdx(p[0],p[1]);
+      if(idx>=0){ rSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='R markiert: '+p[0]+' '+p[1]; }
+      else { document.getElementById('hint').textContent='Nicht gefunden: '+p[0]+' '+p[1]; }
+    }
+  };
+  recR.onend=()=>{ activeRB=null; document.getElementById('recRBtn').className='rec-btn'; document.getElementById('recRIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recRLabel').textContent='Einschreiben (R)'; };
+  recR.onerror=(e)=>{ if(e.error!=='no-speech') document.getElementById('hint').textContent='Fehler: '+e.error; activeRB=null; document.getElementById('recRBtn').className='rec-btn'; document.getElementById('recRIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recRLabel').textContent='Einschreiben (R)'; };
+
+  recB = new SR();
+  recB.lang='de-DE'; recB.interimResults=false; recB.maxAlternatives=3;
+  recB.onstart=()=>{
+    document.getElementById('recBBtn').className='rec-btn listening-b';
+    document.getElementById('recBIcon').setAttribute('href','#ico-mic');
+    document.getElementById('recBLabel').textContent='Zuhoeren (B)...';
+    document.getElementById('hint').textContent='Behoerdlich-Adresse sprechen...';
+  };
+  recB.onresult=(e)=>{
+    const text=e.results[0][0].transcript;
+    document.getElementById('hint').textContent=text;
+    const p=parseAddr(text);
+    if(!p){ document.getElementById('hint').textContent='Nicht erkannt: '+text; }
+    else {
+      const idx=findIdx(p[0],p[1]);
+      if(idx>=0){ bSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='B markiert: '+p[0]+' '+p[1]; }
+      else { document.getElementById('hint').textContent='Nicht gefunden: '+p[0]+' '+p[1]; }
+    }
+  };
+  recB.onend=()=>{ activeRB=null; document.getElementById('recBBtn').className='rec-btn'; document.getElementById('recBIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recBLabel').textContent='Behoerdlich (B)'; };
+  recB.onerror=(e)=>{ if(e.error!=='no-speech') document.getElementById('hint').textContent='Fehler: '+e.error; activeRB=null; document.getElementById('recBBtn').className='rec-btn'; document.getElementById('recBIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recBLabel').textContent='Behoerdlich (B)'; };
+
+  let recDelR=new SR(), recDelB=new SR();
+  recDelR.lang='de-DE';recDelR.interimResults=false;recDelR.maxAlternatives=3;
+  recDelR.onstart=()=>{document.getElementById('delRBtn').className='del-btn listening';document.getElementById('delRIcon').setAttribute('href','#ico-mic');document.getElementById('delRLabel').textContent='Zuhoeren (R loeschen)...';document.getElementById('hint').textContent='Adresse sprechen zum Loeschen des R...';};
+  recDelR.onresult=(e)=>{onDelR(e.results[0][0].transcript);};
+  recDelR.onend=()=>{activeRB=null;document.getElementById('delRBtn').className='del-btn';document.getElementById('delRIcon').setAttribute('href','#ico-mic-off');document.getElementById('delRLabel').textContent='Einschreiben loeschen (R)';};
+  recDelR.onerror=(e)=>{if(e.error!=='no-speech')document.getElementById('hint').textContent='Fehler: '+e.error;activeRB=null;};
+
+  recDelB.lang='de-DE';recDelB.interimResults=false;recDelB.maxAlternatives=3;
+  recDelB.onstart=()=>{document.getElementById('delBBtn').className='del-btn listening';document.getElementById('delBIcon').setAttribute('href','#ico-mic');document.getElementById('delBLabel').textContent='Zuhoeren (B loeschen)...';document.getElementById('hint').textContent='Adresse sprechen zum Loeschen des B...';};
+  recDelB.onresult=(e)=>{onDelB(e.results[0][0].transcript);};
+  recDelB.onend=()=>{activeRB=null;document.getElementById('delBBtn').className='del-btn';document.getElementById('delBIcon').setAttribute('href','#ico-mic-off');document.getElementById('delBLabel').textContent='Behoerdlich loeschen (B)';};
+  recDelB.onerror=(e)=>{if(e.error!=='no-speech')document.getElementById('hint').textContent='Fehler: '+e.error;activeRB=null;};
+
+  // recDelR/recDelB in startRB einbinden
+  const _origStartRB=startRB;
+  function startRB(mode){
+    stopRB(); activeRB=mode;
+    setTimeout(()=>{
+      try{
+        if(mode==='r') recR.start();
+        else if(mode==='b') recB.start();
+        else if(mode==='delR') recDelR.start();
+        else if(mode==='delB') recDelB.start();
+      }catch(e){}
+    },100);
+  }
+});
+</script>
+</body>
+</html>

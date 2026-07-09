@@ -136,7 +136,7 @@ svg { flex-shrink: 0; }
 <div id="app">
   <div class="header">
     <h2><svg width="16" height="16"><use href="#ico-package"/></svg> Paket-Sortierhilfe Adam <span style="font-weight:400;color:#666;font-size:12px;">v67</span></h2>
-    <p>Sprich eine Adresse oder Packstation ein.</p>
+    <p>Sprich eine Adresse oder Packstation ein. <span onclick="if(confirm('App-Cache leeren und neu laden?')){caches.keys().then(k=>Promise.all(k.map(c=>caches.delete(c)))).then(()=>location.reload());}" style="color:#bbb;font-size:10px;cursor:pointer;" title="Cache leeren">↺</span></p>
     <div class="slot-row" id="slotRow"></div>
   </div>
   <div class="slot-confirm" id="slotConfirm">
@@ -151,28 +151,28 @@ svg { flex-shrink: 0; }
     <div class="col-left">
       <div class="btn-row">
         <button class="mic-btn" id="micBtn" onclick="toggleListen('add')">
-          <svg width="15" height="15"><use href="#ico-mic"/></svg>
+          <svg width="18" height="18"><use id="micIcon" href="#ico-mic-off"/></svg>
           <span id="micLabel">Adresse sprechen</span>
         </button>
-        <button class="del-btn" id="delBtn" onclick="toggleListen('del')">
+        <button class="del-btn" id="delBtn" onclick="toggleListen('del')" style="color:#D85A30;">
           <svg width="15" height="15"><use id="delIcon" href="#ico-mic-off"/></svg>
           <span id="delLabel">Position loeschen</span>
         </button>
-        <button class="rec-btn" id="recRBtn" onclick="toggleListen('r')">
+        <button class="rec-btn" id="recRBtn" onclick="toggleListen('r')" style="color:#222;">
           <svg width="15" height="15"><use href="#ico-mic-off" id="recRIcon"/></svg>
           <span id="recRLabel">Einschreiben (R)</span>
         </button>
-        <button class="rec-btn" id="recBBtn" onclick="toggleListen('b')">
-          <svg width="15" height="15"><use href="#ico-mic-off" id="recBIcon"/></svg>
-          <span id="recBLabel">Behoerdlich (B)</span>
-        </button>
-        <button class="del-btn" id="delRBtn" onclick="toggleListen('delR')" style="color:#185FA5;">
+        <button class="del-btn" id="delRBtn" onclick="toggleListen('delR')" style="color:#D85A30;">
           <svg width="15" height="15"><use id="delRIcon" href="#ico-mic-off"/></svg>
           <span id="delRLabel">Einschreiben loeschen (R)</span>
         </button>
-        <button class="del-btn" id="delBBtn" onclick="toggleListen('delB')" style="color:#E07800;">
+        <button class="rec-btn" id="recBBtn" onclick="toggleListen('b')" style="color:#222;">
+          <svg width="15" height="15"><use href="#ico-mic-off" id="recBIcon"/></svg>
+          <span id="recBLabel">ZA (hinzufügen)</span>
+        </button>
+        <button class="del-btn" id="delBBtn" onclick="toggleListen('delB')" style="color:#D85A30;">
           <svg width="15" height="15"><use id="delBIcon" href="#ico-mic-off"/></svg>
-          <span id="delBLabel">Behoerdlich loeschen (B)</span>
+          <span id="delBLabel">ZA (löschen)</span>
         </button>
       </div>
       <!-- Manuelle Eingabe -->
@@ -191,12 +191,14 @@ svg { flex-shrink: 0; }
             <option value="">-- zuerst Straße wählen --</option>
           </select>
           <div class="manual-action-btns">
-            <button class="manual-action-btn manual-btn-pkg" id="manualAddBtn" onclick="manualAdd('pkg')" disabled>📦 +</button>
-            <button class="manual-action-btn manual-btn-r"   id="manualAddBtnR" onclick="manualAdd('r')" disabled>R +</button>
-            <button class="manual-action-btn manual-btn-b"   id="manualAddBtnB" onclick="manualAdd('b')" disabled>B +</button>
-            <button class="manual-action-btn manual-btn-del-pkg" id="manualDelBtn" onclick="manualAdd('del')" disabled>📦 –</button>
-            <button class="manual-action-btn manual-btn-del-r"   id="manualDelBtnR" onclick="manualAdd('delR')" disabled>R –</button>
-            <button class="manual-action-btn manual-btn-del-b"   id="manualDelBtnB" onclick="manualAdd('delB')" disabled>B –</button>
+            <button class="manual-action-btn manual-btn-pkg" id="manualAddBtn" onclick="manualAdd('pkg')" disabled style="color:#222;">📦 Paket</button>
+            <button class="manual-action-btn manual-btn-r"   id="manualAddBtnR" onclick="manualAdd('r')" disabled style="color:#222;">R hinzufügen</button>
+            <button class="manual-action-btn manual-btn-b"   id="manualAddBtnB" onclick="manualAdd('b')" disabled style="color:#222;">ZA hinzufügen</button>
+          </div>
+          <div class="manual-action-btns" style="margin-top:4px;">
+            <button class="manual-action-btn manual-btn-del-pkg" id="manualDelBtn" onclick="manualAdd('del')" disabled style="color:#D85A30;">📦 löschen</button>
+            <button class="manual-action-btn manual-btn-del-r"   id="manualDelBtnR" onclick="manualAdd('delR')" disabled style="color:#D85A30;">R löschen</button>
+            <button class="manual-action-btn manual-btn-del-b"   id="manualDelBtnB" onclick="manualAdd('delB')" disabled style="color:#D85A30;">ZA löschen</button>
           </div>
         </div>
       </div>
@@ -542,14 +544,14 @@ function manualAdd(mode){
     if(idx>=0){rSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='R markiert: '+street+' '+num;}
     else{document.getElementById('hint').textContent='Adresse nicht gefunden.';}
   } else if(mode==='b'){
-    if(idx>=0){bSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='B markiert: '+street+' '+num;}
+    if(idx>=0){bSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='ZA markiert: '+street+' '+num;}
     else{document.getElementById('hint').textContent='Adresse nicht gefunden.';}
   } else if(mode==='delR'){
     if(idx>=0&&rSet.has(idx)){rSet.delete(idx);applyRBClasses();document.getElementById('hint').textContent='R geloescht: '+street+' '+num;}
     else{document.getElementById('hint').textContent='Kein R: '+street+' '+num;}
   } else if(mode==='delB'){
-    if(idx>=0&&bSet.has(idx)){bSet.delete(idx);applyRBClasses();document.getElementById('hint').textContent='B geloescht: '+street+' '+num;}
-    else{document.getElementById('hint').textContent='Kein B: '+street+' '+num;}
+    if(idx>=0&&bSet.has(idx)){bSet.delete(idx);applyRBClasses();document.getElementById('hint').textContent='ZA geloescht: '+street+' '+num;}
+    else{document.getElementById('hint').textContent='Kein ZA: '+street+' '+num;}
   }
   document.getElementById('numSelect').value='';
   ['manualAddBtn','manualAddBtnR','manualAddBtnB','manualDelBtn','manualDelBtnR','manualDelBtnB'].forEach(id=>{
@@ -586,7 +588,7 @@ function onB(text){
   if(!p){document.getElementById('hint').textContent='Nicht erkannt: '+text;}
   else {
     const idx=findIdx(p[0],p[1]);
-    if(idx>=0){bSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='B markiert: '+p[0]+' '+p[1];}
+    if(idx>=0){bSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='ZA markiert: '+p[0]+' '+p[1];}
     else{document.getElementById('hint').textContent='Nicht gefunden: '+p[0]+' '+p[1];}
   }
   // Dauermodus: automatisch neu starten wenn noch aktiv
@@ -624,9 +626,9 @@ function onDelB(text){
   const idx=findIdx(p[0],p[1]);
   if(idx>=0&&bSet.has(idx)){
     bSet.delete(idx);applyRBClasses();
-    document.getElementById('hint').textContent='B geloescht: '+p[0]+' '+p[1];
+    document.getElementById('hint').textContent='ZA geloescht: '+p[0]+' '+p[1];
   } else {
-    document.getElementById('hint').textContent='Kein B gefunden: '+p[0]+' '+p[1];
+    document.getElementById('hint').textContent='Kein ZA gefunden: '+p[0]+' '+p[1];
   }
 }
 
@@ -735,9 +737,9 @@ window.addEventListener('load',()=>{
     ['delRBtn','delBBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='del-btn';});
     ['recRIcon','recBIcon','delRIcon','delBIcon'].forEach(id=>{const el=document.getElementById(id);if(el)el.setAttribute('href','#ico-mic-off');});
     document.getElementById('recRLabel').textContent='Einschreiben (R)';
-    document.getElementById('recBLabel').textContent='Behoerdlich (B)';
+    document.getElementById('recBLabel').textContent='ZA (hinzufügen)';
     if(document.getElementById('delRLabel'))document.getElementById('delRLabel').textContent='Einschreiben loeschen (R)';
-    if(document.getElementById('delBLabel'))document.getElementById('delBLabel').textContent='Behoerdlich loeschen (B)';
+    if(document.getElementById('delBLabel'))document.getElementById('delBLabel').textContent='ZA (löschen)';
     document.getElementById('hint').textContent='Taste druecken, dann sprechen';
   }
 
@@ -798,12 +800,12 @@ window.addEventListener('load',()=>{
     if(!p){ document.getElementById('hint').textContent='Nicht erkannt: '+text; }
     else {
       const idx=findIdx(p[0],p[1]);
-      if(idx>=0){ bSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='B markiert: '+p[0]+' '+p[1]; }
+      if(idx>=0){ bSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='ZA markiert: '+p[0]+' '+p[1]; }
       else { document.getElementById('hint').textContent='Nicht gefunden: '+p[0]+' '+p[1]; }
     }
   };
-  recB.onend=()=>{ activeRB=null; document.getElementById('recBBtn').className='rec-btn'; document.getElementById('recBIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recBLabel').textContent='Behoerdlich (B)'; };
-  recB.onerror=(e)=>{ if(e.error!=='no-speech') document.getElementById('hint').textContent='Fehler: '+e.error; activeRB=null; document.getElementById('recBBtn').className='rec-btn'; document.getElementById('recBIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recBLabel').textContent='Behoerdlich (B)'; };
+  recB.onend=()=>{ activeRB=null; document.getElementById('recBBtn').className='rec-btn'; document.getElementById('recBIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recBLabel').textContent='ZA (hinzufügen)'; };
+  recB.onerror=(e)=>{ if(e.error!=='no-speech') document.getElementById('hint').textContent='Fehler: '+e.error; activeRB=null; document.getElementById('recBBtn').className='rec-btn'; document.getElementById('recBIcon').setAttribute('href','#ico-mic-off'); document.getElementById('recBLabel').textContent='ZA (hinzufügen)'; };
 
   let recDelR=new SR(), recDelB=new SR();
   recDelR.lang='de-DE';recDelR.interimResults=false;recDelR.maxAlternatives=3;
@@ -815,7 +817,7 @@ window.addEventListener('load',()=>{
   recDelB.lang='de-DE';recDelB.interimResults=false;recDelB.maxAlternatives=3;
   recDelB.onstart=()=>{document.getElementById('delBBtn').className='del-btn listening';document.getElementById('delBIcon').setAttribute('href','#ico-mic');document.getElementById('delBLabel').textContent='Zuhoeren (B loeschen)...';document.getElementById('hint').textContent='Adresse sprechen zum Loeschen des B...';};
   recDelB.onresult=(e)=>{onDelB(e.results[0][0].transcript);};
-  recDelB.onend=()=>{activeRB=null;document.getElementById('delBBtn').className='del-btn';document.getElementById('delBIcon').setAttribute('href','#ico-mic-off');document.getElementById('delBLabel').textContent='Behoerdlich loeschen (B)';};
+  recDelB.onend=()=>{activeRB=null;document.getElementById('delBBtn').className='del-btn';document.getElementById('delBIcon').setAttribute('href','#ico-mic-off');document.getElementById('delBLabel').textContent='ZA (löschen)';};
   recDelB.onerror=(e)=>{if(e.error!=='no-speech')document.getElementById('hint').textContent='Fehler: '+e.error;activeRB=null;};
 
   // recDelR/recDelB in startRB einbinden

@@ -99,6 +99,10 @@ html, body { background: #FFCC00 !important; font-size: 15px; font-family: -appl
 .manual-btn-pkg { background: #D85A30; color: #fff; border-color: #b34000; }
 .manual-btn-r   { background: #fff; color: #185FA5; border-color: #185FA5; }
 .manual-btn-b   { background: #fff; color: #E07800; border-color: #E07800; }
+.manual-btn-del-pkg { background: #fff; color: #D85A30; border-color: #D85A30; }
+.manual-btn-del-r   { background: #eef4ff; color: #185FA5; border-color: #185FA5; }
+.manual-btn-del-b   { background: #fff8ee; color: #E07800; border-color: #E07800; }
+.manual-action-btns { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
 /* Einschreiben / Behoerdlich Badges */
 .badge-r { display:none; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; background:#e8f0ff; color:#185FA5; border:1px solid #185FA5; align-items:center; cursor:pointer; }
 .badge-b { display:none; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; background:#fff8ee; color:#E07800; border:1px solid #E07800; align-items:center; cursor:pointer; }
@@ -187,9 +191,12 @@ svg { flex-shrink: 0; }
             <option value="">-- zuerst Straße wählen --</option>
           </select>
           <div class="manual-action-btns">
-            <button class="manual-action-btn manual-btn-pkg" id="manualAddBtn" onclick="manualAdd('pkg')" disabled>📦 Paket</button>
-            <button class="manual-action-btn manual-btn-r"   id="manualAddBtnR" onclick="manualAdd('r')" disabled>R</button>
-            <button class="manual-action-btn manual-btn-b"   id="manualAddBtnB" onclick="manualAdd('b')" disabled>B</button>
+            <button class="manual-action-btn manual-btn-pkg" id="manualAddBtn" onclick="manualAdd('pkg')" disabled>📦 +</button>
+            <button class="manual-action-btn manual-btn-r"   id="manualAddBtnR" onclick="manualAdd('r')" disabled>R +</button>
+            <button class="manual-action-btn manual-btn-b"   id="manualAddBtnB" onclick="manualAdd('b')" disabled>B +</button>
+            <button class="manual-action-btn manual-btn-del-pkg" id="manualDelBtn" onclick="manualAdd('del')" disabled>📦 –</button>
+            <button class="manual-action-btn manual-btn-del-r"   id="manualDelBtnR" onclick="manualAdd('delR')" disabled>R –</button>
+            <button class="manual-action-btn manual-btn-del-b"   id="manualDelBtnB" onclick="manualAdd('delB')" disabled>B –</button>
           </div>
         </div>
       </div>
@@ -522,31 +529,46 @@ function manualAdd(mode){
   const street=document.getElementById('streetSelect').value;
   const num=document.getElementById('numSelect').value;
   if(!street||!num) return;
+  const idx=findIdx(street,num);
   if(mode==='pkg'){
     const pos=insert(street,num);
     renderResult(street,num,pos);
-  } else {
-    const idx=findIdx(street,num);
-    if(idx>=0){
-      if(mode==='r'){ rSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='R markiert: '+street+' '+num; }
-      else           { bSet.add(idx); applyRBClasses(); document.getElementById('hint').textContent='B markiert: '+street+' '+num; }
+  } else if(mode==='del'){
+    // Paket löschen
+    const pi=packages.findIndex(([s,h])=>s===street&&h.toLowerCase()===num.toLowerCase());
+    if(pi>=0){
+      packages.splice(pi,1);
+      document.getElementById('hint').textContent='Geloescht: '+street+' '+num;
+      if(!packages.length)resetUI();else{renderList();updateHighlights();}
     } else {
-      document.getElementById('hint').textContent='Adresse nicht gefunden.';
+      document.getElementById('hint').textContent='Nicht in Liste: '+street+' '+num;
     }
+  } else if(mode==='r'){
+    if(idx>=0){rSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='R markiert: '+street+' '+num;}
+    else{document.getElementById('hint').textContent='Adresse nicht gefunden.';}
+  } else if(mode==='b'){
+    if(idx>=0){bSet.add(idx);applyRBClasses();document.getElementById('hint').textContent='B markiert: '+street+' '+num;}
+    else{document.getElementById('hint').textContent='Adresse nicht gefunden.';}
+  } else if(mode==='delR'){
+    if(idx>=0&&rSet.has(idx)){rSet.delete(idx);applyRBClasses();document.getElementById('hint').textContent='R geloescht: '+street+' '+num;}
+    else{document.getElementById('hint').textContent='Kein R: '+street+' '+num;}
+  } else if(mode==='delB'){
+    if(idx>=0&&bSet.has(idx)){bSet.delete(idx);applyRBClasses();document.getElementById('hint').textContent='B geloescht: '+street+' '+num;}
+    else{document.getElementById('hint').textContent='Kein B: '+street+' '+num;}
   }
   document.getElementById('numSelect').value='';
-  document.getElementById('manualAddBtn').disabled=true;
-  document.getElementById('manualAddBtnR').disabled=true;
-  document.getElementById('manualAddBtnB').disabled=true;
+  ['manualAddBtn','manualAddBtnR','manualAddBtnB','manualDelBtn','manualDelBtnR','manualDelBtnB'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.disabled=true;
+  });
 }
 
 // Enable add button when number selected
 document.addEventListener('change',function(e){
   if(e.target.id==='numSelect'){
     const v=!!e.target.value;
-    document.getElementById('manualAddBtn').disabled=!v;
-    document.getElementById('manualAddBtnR').disabled=!v;
-    document.getElementById('manualAddBtnB').disabled=!v;
+    ['manualAddBtn','manualAddBtnR','manualAddBtnB','manualDelBtn','manualDelBtnR','manualDelBtnB'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.disabled=!v;
+    });
   }
 });
 
@@ -574,6 +596,17 @@ function onB(text){
   }
   // Dauermodus: automatisch neu starten wenn noch aktiv
   if(lisB && recB){ setTimeout(()=>{ try{recB.start();}catch(e){} },300); }
+}
+
+function onDel(text){
+  document.getElementById('hint').textContent=text;
+  const n=parseNum(text);
+  document.getElementById('resultCard').className='result-card show';
+  ['resultAddr','resultPos','resultBetween','resultNotFound','resultDeleted'].forEach(id=>document.getElementById(id).textContent='');
+  if(n===null||n<1||n>packages.length){document.getElementById('resultNotFound').textContent='Position nicht erkannt.';return;}
+  const del=packages[n-1];packages.splice(n-1,1);
+  document.getElementById('resultDeleted').textContent='Pos. '+n+' geloescht: '+del[0]+' '+del[1];
+  if(!packages.length)setTimeout(resetUI,1500);else{renderList();updateHighlights();}
 }
 
 function onDelR(text){
